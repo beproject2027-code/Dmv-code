@@ -10,27 +10,24 @@ df = pd.read_csv(r'C:\Users\HP\Downloads\house_data.csv')
 print("First 5 Records:")
 print(df.head())
 
-print("\nDataset Information:")
-print(df.info())
-
 print("\nDataset Shape:")
 print(df.shape)
 
 # 2. Clean Column Names
 df.columns = df.columns.str.strip()
 df.columns = df.columns.str.replace(' ', '_')
-df.columns = df.columns.str.replace(r'[^A-Za-z0-9_]', '', regex=True)
 
-print("\nClean Column Names:")
+print("\nColumn Names:")
 print(df.columns)
 
 # 3. Handle Missing Values
 print("\nMissing Values:")
 print(df.isnull().sum())
 
-for col in df.select_dtypes(include=np.number).columns:
-    df[col] = df[col].fillna(df[col].mean())
+# Fill missing numerical values with mean
+df = df.fillna(df.mean(numeric_only=True))
 
+# Fill missing categorical values with mode
 for col in df.select_dtypes(include='object').columns:
     if df[col].isnull().any():
         df[col] = df[col].fillna(df[col].mode()[0])
@@ -48,40 +45,41 @@ print("Shape After Removing Duplicates:")
 print(df.shape)
 
 # 5. Filter Data
+# Houses with price greater than 500000
 expensive = df[df['price'] > 500000]
 
-print("\nExpensive Properties:")
+print("\nExpensive Houses:")
 print(expensive.head())
 
-# Filter properties with 3 bedrooms
-three_bedrooms = df[df['bedrooms'] == 3]
+# Houses with 3 bedrooms
+bedrooms = df[df['bedrooms'] == 3]
 
-print("\nProperties with 3 Bedrooms:")
-print(three_bedrooms.head())
+print("\nHouses with 3 Bedrooms:")
+print(bedrooms.head())
 
-# 6. Categorical Encoding
-# This dataset has no actual categorical text columns.
-cat_columns = df.select_dtypes(include='object').columns
+# 6. Data Encoding
 
-if len(cat_columns) > 0:
-    df = pd.get_dummies(df, columns=cat_columns, dtype=int)
+# Convert date into date format
+df['date'] = pd.to_datetime(df['date'], format='%Y%m%dT%H%M%S')
+
+# One-Hot Encoding of zipcode
+df = pd.get_dummies(df, columns=['zipcode'],
+                    drop_first=True, dtype=int)
 
 print("\nDataset After Encoding:")
 print(df.head())
 
 # 7. Data Aggregation
 
-# Average price by zipcode
-avg_price = df.groupby('zipcode')['price'].mean()
-
-print("\nAverage Price by Zipcode:")
-print(avg_price.head())
-
 # Average price by bedrooms
-bedroom_price = df.groupby('bedrooms')['price'].mean()
+avg_price = df.groupby('bedrooms')['price'].mean()
 
 print("\nAverage Price by Bedrooms:")
-print(bedroom_price)
+print(avg_price)
+
+# Average price by zipcode
+# Use the original zipcode before encoding if needed.
+# Here, group by bedrooms for simple aggregation.
 
 # 8. Handle Outliers using IQR
 Q1 = df['price'].quantile(0.25)
@@ -112,9 +110,9 @@ plt.title("House Price Outliers")
 plt.show()
 
 # Bar Chart
-bedroom_price = df.groupby('bedrooms')['price'].mean()
-bedroom_price.plot(kind='bar')
+avg_price = df.groupby('bedrooms')['price'].mean()
 
+avg_price.plot(kind='bar')
 plt.title("Average Price by Bedrooms")
 plt.xlabel("Number of Bedrooms")
 plt.ylabel("Average Price")
