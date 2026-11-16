@@ -1,0 +1,126 @@
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 1. Load Dataset
+df = pd.read_csv(r'C:\Users\HP\Downloads\house_data.csv')
+
+print("First 5 Records:")
+print(df.head())
+
+print("\nDataset Information:")
+print(df.info())
+
+print("\nDataset Shape:")
+print(df.shape)
+
+# 2. Clean Column Names
+df.columns = df.columns.str.strip()
+df.columns = df.columns.str.replace(' ', '_')
+df.columns = df.columns.str.replace(r'[^A-Za-z0-9_]', '', regex=True)
+
+print("\nClean Column Names:")
+print(df.columns)
+
+# 3. Handle Missing Values
+print("\nMissing Values:")
+print(df.isnull().sum())
+
+for col in df.select_dtypes(include=np.number).columns:
+    df[col] = df[col].fillna(df[col].mean())
+
+for col in df.select_dtypes(include='object').columns:
+    if df[col].isnull().any():
+        df[col] = df[col].fillna(df[col].mode()[0])
+
+print("\nMissing Values After Cleaning:")
+print(df.isnull().sum())
+
+# 4. Remove Duplicate Records
+print("\nDuplicate Records:")
+print(df.duplicated().sum())
+
+df = df.drop_duplicates()
+
+print("Shape After Removing Duplicates:")
+print(df.shape)
+
+# 5. Filter Data
+expensive = df[df['price'] > 500000]
+
+print("\nExpensive Properties:")
+print(expensive.head())
+
+# Filter properties with 3 bedrooms
+three_bedrooms = df[df['bedrooms'] == 3]
+
+print("\nProperties with 3 Bedrooms:")
+print(three_bedrooms.head())
+
+# 6. Categorical Encoding
+# This dataset has no actual categorical text columns.
+cat_columns = df.select_dtypes(include='object').columns
+
+if len(cat_columns) > 0:
+    df = pd.get_dummies(df, columns=cat_columns, dtype=int)
+
+print("\nDataset After Encoding:")
+print(df.head())
+
+# 7. Data Aggregation
+
+# Average price by zipcode
+avg_price = df.groupby('zipcode')['price'].mean()
+
+print("\nAverage Price by Zipcode:")
+print(avg_price.head())
+
+# Average price by bedrooms
+bedroom_price = df.groupby('bedrooms')['price'].mean()
+
+print("\nAverage Price by Bedrooms:")
+print(bedroom_price)
+
+# 8. Handle Outliers using IQR
+Q1 = df['price'].quantile(0.25)
+Q3 = df['price'].quantile(0.75)
+
+IQR = Q3 - Q1
+
+lower = Q1 - 1.5 * IQR
+upper = Q3 + 1.5 * IQR
+
+df = df[(df['price'] >= lower) & (df['price'] <= upper)]
+
+print("\nShape After Removing Outliers:")
+print(df.shape)
+
+# 9. Data Visualization
+
+# Histogram
+plt.hist(df['price'], bins=20)
+plt.title("House Price Distribution")
+plt.xlabel("Price")
+plt.ylabel("Frequency")
+plt.show()
+
+# Boxplot
+sns.boxplot(x=df['price'])
+plt.title("House Price Outliers")
+plt.show()
+
+# Bar Chart
+bedroom_price = df.groupby('bedrooms')['price'].mean()
+bedroom_price.plot(kind='bar')
+
+plt.title("Average Price by Bedrooms")
+plt.xlabel("Number of Bedrooms")
+plt.ylabel("Average Price")
+plt.show()
+
+# 10. Save Cleaned Dataset
+df.to_csv("Cleaned_RealEstate.csv", index=False)
+
+print("\nCleaned Dataset Saved Successfully!")
